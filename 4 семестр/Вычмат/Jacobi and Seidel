@@ -38,7 +38,7 @@ def Jacobi_method(A,b, n,  apr):
     return xk
 
 
-def Seidel_method(A,b, n, apr):
+def Seidel_method(A,b, n, apr): // Неправильно 
     L = np.tril(A)
     U = A - L
     B = np.dot(np.linalg.inv(L), -U)
