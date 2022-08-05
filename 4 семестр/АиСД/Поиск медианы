@@ -1,0 +1,59 @@
+#include <fstream>
+#include <iostream>
+#include <algorithm>
+
+using namespace std;
+int Partition(double* M, int*A, int l, int r) {
+    double k = M[r];
+    int N = l;
+    for (; l < r; l++) {
+        if (M[l] <= k) {
+            swap(M[l], M[N]);
+            swap(A[l], A[N]);
+          //  A[l] = N;
+          //  A[N] = l;
+            N++;
+        }
+    }
+    swap(M[N], M[r]);
+    swap(A[N], A[r]);
+    return N;
+}
+
+void QuickSort(double* M, int* A, int l, int r) {
+     if (l < r) {
+        int N = Partition(M, A, l, r);
+        QuickSort(M, A, l, N - 1);
+        QuickSort(M, A, N + 1, r);
+    }
+}
+int main(int argc, char* argv[]){
+  if (argc<2) {
+    return 1;
+  }
+  std::ifstream inFile(argv[1]);
+  if (!inFile){
+    return 2;
+  }
+    
+  /*
+    Код вашей программы
+  */
+  int N;
+    inFile >> N;
+    double* M = new double[N];
+    for (int i = 0; i < N; i++) {
+        inFile >> M[i];
+    }
+    int* A = new int[N];
+    for (int i = 0; i < N; i++) {
+        A[i] = i;
+    }
+    QuickSort(M, A, 0, N - 1);
+   cout << A[0] + 1 << ' ' << A[N / 2]+1 << ' ' << A[N - 1]+1;
+  
+  delete[] A;
+  delete[] M;
+  inFile.close();
+  return 0;
+}
