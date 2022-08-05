@@ -1,0 +1,89 @@
+#include <fstream> 
+#include <string> 
+
+using namespace std; 
+
+int main(int argc, char* argv[]){
+  if (argc<3) {
+    return -1;
+  }
+
+  std::ifstream inFile(argv[1]);
+  if (!inFile){
+    return -2;
+  }
+  
+  std::ofstream outFile(argv[2]);
+  if (!outFile){
+    return -3;
+  }
+  
+  /*
+    Код вашей программы
+  */
+    int N, M, K;
+    inFile >> N >> M >> K;
+
+    char** arr = new char* [M];
+    for (int i = 0; i < M; i++)
+    {
+        arr[i] = new char[N];
+    }
+    for (int i = 0; i < M; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            inFile >> arr[i][j];
+
+        }
+    }
+
+
+    int* A = new int[N];
+    for (int i = 0; i < N; i++) {
+        A[i] = i;
+    }
+    for (int i = 0; i < K; i++) {
+        // inFile.seekg(6 + N * (M - i + 1) - (2 * i) - 1);
+         //inFile >> word;
+        int C[256], d;
+        int* B = new int[N];
+        for (int ii = 0; ii < N; ii++) {
+            B[ii] = ii;
+        }
+        for (int j = 0; j < 256; j++)
+            C[j] = 0;
+        for (int j = 0; j < N; j++) { // кол-во букв в слове
+            d = int(arr[M - 1 - i][j]); // word - слово (baa) 
+            C[d]++;
+        }
+        int count = 0;
+        for (int j = 0; j < 256; j++) {
+            int tmp = C[j];
+            C[j] = count;
+            count += tmp;
+        }
+        for (int j = 0; j < N; j++) {
+            d = int(arr[M - 1 - i][A[j]]);
+            B[C[d]] = A[j]; //j;
+            C[d]++;
+        }
+        for (int ii = 0; ii < N; ii++)
+        {
+            A[ii] = B[ii];
+        }
+        delete[] B;
+        //     M--;
+    }
+    for (int i = 0; i < N - 1; i++)
+        outFile << A[i] + 1 << ' ';
+    outFile << A[N - 1] + 1;
+    delete[] A;
+    for(int i = 0; i < M; i++){
+       delete[] arr[i];
+       }
+    delete [] arr;
+  inFile.close();
+  outFile.close();
+  return 0;
+}
