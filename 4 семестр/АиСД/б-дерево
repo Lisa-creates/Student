@@ -1,0 +1,500 @@
+#include <iostream> 
+#include <fstream> 
+#include <vector>
+
+using namespace std;
+
+
+struct node {
+    vector<int> keys;
+    vector<node*> child;
+
+    int n() {
+        return keys.size();
+    }
+
+    bool leaf() { return child.size() == 0; }
+
+    bool nodeFull(int t) {
+        return 2 * t - 1 == keys.size();
+    }
+
+    ~node() {
+        keys.clear();
+        child.clear();
+    }
+};
+
+
+class Tree {
+public:
+
+    node* root;
+    int t;
+
+
+
+    Tree(int tmp) {
+        root = new node();
+        t = tmp;
+    }
+    bool BTreeSearch(int k) {
+        return Search(k, root);
+    }
+
+    void insert_public(int k) {
+        insert(root, k);
+    }
+
+    void delete_public(int k) {
+        maindelete(root, k);
+    }
+
+private:
+
+    bool Search(int k, node* bnode) {
+        int i = 0;
+        while (i < bnode->n() && k > bnode->keys[i]) {
+            i++;
+        }
+        if (i < bnode->n() && bnode->keys[i] == k)
+            return true;
+        if (bnode->leaf())
+            return false;
+        return Search(k, bnode->child[i]);
+    }
+
+    void insertInGoodLeaf(int key, node* bnode) { // < 2t - 1
+        int i = 0;
+
+        while (i < bnode->n() && key > bnode->keys[i])
+            i++;
+        if (i < bnode->n() && key == bnode->keys[i])
+            return;
+        /* int tmp;
+           while (i < root->keys.size())
+           {
+                   tmp = root->keys[i];
+                   root->keys[i] = key;
+                   key = tmp;
+           } */
+        auto i_beg = bnode->keys.begin();
+        bnode->keys.insert(i_beg + i, key);
+    }
+
+        node* insertInFull(node* parent, node* children) {
+        int i = t - 1, iParent = 0;
+        auto it_keys_beg = children->keys.begin();
+        vector<int> b(it_keys_beg, it_keys_beg + i);
+        vector<int> c(it_keys_beg + i + 1, it_keys_beg + children->n());
+        node* left = new node(); 
+        left->keys.assign(b.begin(), b.end());
+        // left->n = t - 1;
+        node* right = new node();
+        right->keys.assign(c.begin(), c.end());
+        // right->n = t - 1;
+        if (!children->leaf()) {
+            auto it1 = children->child.begin();
+            vector<node*> d(it1, it1 + i + 1);
+            vector<node*> e(it1 + i + 1, it1 + children->n() + 1);
+            left->child.assign(d.begin(), d.end());
+            right->child.assign(e.begin(), e.end());
+        }
+        int parentK = children->keys[i]; 
+        delete children;
+        if (!parent) {
+            parent = new node();
+            root = parent;
+            parent->child.push_back(left);
+            parent->child.push_back(right);
+            parent->keys.push_back(parentK);
+        }
+        else {
+            while (iParent < parent->n() && parentK > parent->keys[iParent])
+                iParent++;
+            parent->keys.insert(parent->keys.begin() + iParent, parentK);
+            parent->child.insert(parent->child.begin() + iParent, left);
+            parent->child[iParent + 1] = right;
+        }
+
+        //	parent->n += 1;
+        //	parent->isleaf = false;
+        return parent;
+    }
+    
+    void insert(node* bnode, int key) {
+
+        node* parent = nullptr;
+
+        if (bnode->leaf() && !bnode->nodeFull(t))
+            insertInGoodLeaf(key, bnode);
+        else {
+            while (bnode)
+            {
+                if (bnode->nodeFull(t))
+                    bnode = insertInFull(parent, bnode);
+                if (!bnode->leaf()) {
+                    int i = 0;
+                    while (i < bnode->n() && key > bnode->keys[i])
+                        i++;
+                    parent = bnode;
+                    bnode = bnode->child[i];
+                }
+                else
+                {
+                    insertInGoodLeaf(key, bnode);
+                    return;
+                }
+            }
+        }
+    }
+
+    int keyposition(node* bnode, long key) {
+        int i = 0;
+        while (i < bnode->n())
+        {
+            i++;
+            if (key == bnode->keys[i])
+                return i;
+        }
+    }
+
+    void deleteFromGoodLeaf(node* bnode, int i) {
+        bnode->keys.erase(bnode->keys.begin() + i);
+        // bnode->n--;
+       //  return bnode;
+    }
+
+    void deleteFromGoodNode(node* bnode, node* children, int i, bool left) {
+        // int i = keyposition(bnode, key);
+        int iDelete;
+        if (left)
+            iDelete = children->n() - 1;
+        else
+            iDelete = 0;
+        bnode->keys[i] = children->keys[iDelete]; 
+        deleteFromGoodLeaf(children, iDelete);
+    }
+    
+        void maindelete(node* bnode, long key) {
+        int i = 0;
+        while (i < bnode->n() && key > bnode->keys[i])
+        {
+            i++;
+        }
+        if ((i == bnode->keys.size() || key != bnode->keys[i]) && bnode->leaf())
+            return;
+        if (i < bnode->n() && key == bnode->keys[i]) { // ключ найден 
+            if (bnode->leaf())
+            {
+                deleteFromGoodLeaf(bnode, i);
+                return;
+            }
+            /* node* left = bnode->child[i];
+             node* right = bnode->child[i + 1];
+             if (left->leaf() && left->n() > t)
+                 deleteFromGoodNode(bnode, left, i, true);
+             else if (right->leaf() && right->n() > t)
+                 deleteFromGoodNode(bnode, right, i, false);
+             else*/
+            deleteFromBadNode(i, bnode);
+            return;
+        }
+        else { // ключ не найден, нужно спуститься 
+            node* left = bnode->child[i];
+            if (left->n() <= t - 1) { // Либо забрать у брата либо соединить 
+                vector <node*> output = down(bnode, left, i);
+                left = output[1]; 
+            }
+            maindelete(left, key);
+        }
+    }
+
+
+    vector <node*> down(node* bnode, node* left, int i) {
+        // cout << "I'm here"; 
+        node* left_children = nullptr;
+        node* right_children = nullptr;
+        bool RisMin;
+        if (i > 0)
+            left_children = bnode->child[i - 1];
+        if (i < bnode->n())
+        {
+            right_children = bnode->child[i + 1];
+            RisMin = right_children->n() < t;
+        }
+        if (left_children) {
+            int sizeLC = left_children->n();
+            if (sizeLC >= t) { // Если есть левый брат и у него болше, чем t ключами, забираем у брата 
+                if (!right_children || RisMin || (!RisMin && sizeLC >= right_children->n()))
+                    exchange(left, left_children, bnode, i - 1, false);
+                else if (!RisMin && sizeLC < right_children->n())
+                    exchange(left, right_children, bnode, i, true);
+            }
+            else { // если у правого >= t, забираем у него  
+                if (!right_children || RisMin) // иначе создаём узел из корневого узла и левого ребёнка 
+                    return connectNode(left_children, left, bnode, i - 1);
+                else if (!RisMin)
+                    exchange(left, right_children, bnode, i, true);
+            }
+        }
+        else
+        { // нет левого ребёнка 
+            if (RisMin) // создаём узел из корневого узла и правого ребёнка 
+                connectNode(left, right_children, bnode, i);
+            else // забираем крайний из правого 
+                exchange(left, right_children, bnode, i, true);
+        }
+        vector <node*> output = { bnode, left };
+        return output;
+    }
+
+
+    void deleteFromBadNode(int i, node* bnode) {
+
+        int key;
+
+        node* left = bnode->child[i];
+        node* right = bnode->child[i + 1]; 
+
+        if (left->n() > t - 1) {
+            key = InLeft(left); // найти слева 
+            bnode->keys[i] = key; // заменить 
+        }
+        else if (right->n() > t - 1) {
+            key = InRight(right); // найти справа 
+            bnode->keys[i] = key; // заменить 
+        }
+        else
+        { // у обоих t - 1 - соединить, получаем узел с 2t - 1 элементами  
+            int k = left->n();
+            vector <node*> output = connectNode(left, right, bnode, i);
+            left = output[1];
+            bnode = output[0];
+            if (!left->leaf())
+            {
+                /*                node* left_child = left->child[i];
+                                node* right_child = left->child[i + 1];
+                            if (left_child->leaf() && left_child->n() >= t)
+                                    deleteFromGoodNode(left, left_child, i, true);
+                                else if (right_child->leaf() && right_child->n() >= t)
+                                    deleteFromGoodNode(left, right_child, i, false);
+                                else*/
+                deleteFromBadNode(k, left);
+            }
+            else
+                deleteFromGoodLeaf(left, k);
+        }
+    }
+
+    long InRight(node* parent) {
+
+        int key;
+
+        if (parent->leaf()) 
+        {
+            key = parent->keys[0];
+            deleteFromGoodLeaf(parent, 0);
+            return key;
+        }
+
+        node* bnode = parent->child[0];
+        int i = 0;
+        while (parent) {
+            if (bnode->n() <= t - 1) { // внутренний узел, у которого t - 1 ключей  
+                vector <node*> output = down(parent, bnode, i);
+                bnode = output[1];
+                parent = output[0];
+            }
+            if (bnode->leaf())
+                break;
+            parent = bnode; // нужно спуститься 
+            bnode = bnode->child[0];
+        }
+        key = bnode->keys[0];
+        deleteFromGoodLeaf(bnode, 0);
+        return key;
+    }
+
+    long InLeft(node* parent) {
+        int key;
+        if (parent->leaf()) {
+            int iL = parent->n() - 1;
+            key = parent->keys[iL];
+            deleteFromGoodLeaf(parent, iL);
+            return key;
+        }
+        int i = parent->child.size() - 1;
+        node* bnode = parent->child[i];
+        while (bnode) {
+            if (bnode->n() <= t - 1) {
+                /*node* left_children = nullptr;
+                node* right_children = nullptr;
+                bool RisMin;
+                if (i > 0)
+                    left_children = parent->child[i - 1];
+                if (i < parent->n())
+                {
+                    right_children = parent->child[i + 1];
+                    RisMin = right_children->n() < t;
+                }
+                if (left_children) {
+                    int sizeLC = left_children->n();
+                    if (sizeLC >= t) {
+                        if (!right_children || RisMin || (!RisMin && sizeLC >= right_children->n()))
+                            exchange(bnode, left_children, parent, i - 1, false);
+                        else if (!RisMin && sizeLC < right_children->n())
+                            exchange(bnode, right_children, parent, i, true);
+                    }
+                    else {
+                        if (!right_children || RisMin)
+                            connectNode(left_children, bnode, parent, i - 1);
+                        else if(!RisMin)
+                            exchange(bnode, right_children, parent, i, true);
+                    }
+                }
+                else
+                {
+                    if (RisMin)
+                        connectNode(bnode, right_children, parent, i);
+                    else
+                        exchange(bnode, right_children, parent, i, true);
+                }*/
+                vector <node*> output = down(parent, bnode, i);
+                bnode = output[1];
+                parent = output[0];
+            }
+            if (bnode->leaf())
+                break;
+            parent = bnode;
+            i = bnode->child.size() - 1;
+            bnode = bnode->child[i];
+        }
+        int ind = bnode->n();
+        key = bnode->keys[ind - 1];
+        deleteFromGoodLeaf(bnode, ind - 1);
+        return key;
+    }
+
+
+
+    vector <node*> connectNode(node* left_child, node* right_child, node* parent, int i) {
+        // соединение двух узлов 
+        int key = parent->keys[i];
+        left_child->keys.push_back(key);
+
+        parent->keys.erase(parent->keys.begin() + i);
+        parent->child.erase(parent->child.begin() + i);
+        left_child->keys.insert(left_child->keys.end(), right_child->keys.begin(), right_child->keys.end());
+
+        if (!right_child->leaf())
+            left_child->child.insert(left_child->child.end(), right_child->child.begin(), right_child->child.end());
+        if (parent->n() == 0 && parent == root) {
+            root = left_child;
+            delete parent;
+            parent = nullptr;
+        }
+        else
+            parent->child[i] = left_child;
+        vector <node*> output = { parent, left_child };
+        delete right_child;
+        return output;
+    }
+
+    void exchange(node* first_child, node* second_child, node* parent, int i, bool first_is_left) {
+
+        int i_sub, i_child, key = parent->keys[i];
+
+        if (first_is_left) { // first is left second is right, когда из правого потомка можем забрать (>= t)
+            i_sub = 0;
+            i_child = 0;
+            first_child->keys.push_back(key);
+        }
+        else {
+            i_sub = second_child->n() - 1; // first is right second is left, когда из левого потомка можем забрать (>= t)
+            i_child = i_sub + 1;
+            first_child->keys.insert(first_child->keys.begin(), key);
+        }
+
+        if (!second_child->leaf()) {
+            node* children = second_child->child[i_child];
+            auto ind_delete = second_child->child.begin();
+            if (first_is_left)
+                first_child->child.push_back(children);
+            else
+            {
+                first_child->child.insert(first_child->child.begin(), children);
+                ind_delete += second_child->child.size() - 1;
+            }
+            second_child->child.erase(ind_delete);
+        }
+
+        parent->keys[i] = second_child->keys[i_sub];
+        auto i_key = second_child->keys.begin();
+        if (!first_is_left)
+            i_key += second_child->n() - 1;
+        second_child->keys.erase(i_key);
+    }
+};
+
+
+
+int main(int argc, char* argv[]){
+  if (argc<3) {
+    return 1;
+  }
+  std::ifstream inFile(argv[1]);
+  if (!inFile){
+    return 2;
+  }
+  std::ofstream outFile(argv[2]);
+  if (!outFile){
+    return 3;
+  }
+  
+  /*
+    Код вашей программы
+  */
+  
+    int t, n, size_root, k;
+    inFile >> t >> n;
+    char operations;
+    Tree btree(t);
+    for (int i = 0; i < n; ++i) {
+        inFile >> operations >> k;
+        switch (operations) {
+        case '+':
+            btree.insert_public(k);
+            size_root = btree.root->n();
+            outFile << size_root << " ";
+            for (int i = 0; i < size_root - 1; i++)
+                outFile << btree.root->keys[i] << " ";
+            outFile << btree.root->keys[size_root - 1];
+            break;
+        case '?':
+            if (btree.BTreeSearch(k))
+                outFile << "true";
+            else
+                outFile << "false";
+            break;
+        case '-':
+
+            btree.delete_public(k);
+            if (btree.root == nullptr || btree.root->n() == 0)
+                outFile << 0;
+            else {
+                size_root = btree.root->n();
+                outFile << size_root << " ";
+                for (int i = 0; i < size_root - 1; i++)
+                    outFile << btree.root->keys[i] << " ";
+                outFile << btree.root->keys[size_root - 1];
+            }
+            break;
+        }
+        outFile << endl;
+    }
+  
+  inFile.close();
+  outFile.close();
+  return 0;
+}
