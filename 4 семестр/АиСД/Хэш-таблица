@@ -1,0 +1,113 @@
+#include <fstream>
+
+using namespace std;
+
+struct Hash {
+	int value;
+	struct Hash *next;
+	Hash(int k) { value = k; next = nullptr; }
+} **arrkey;
+
+int Hash_f(int value, int size_hash_table) {
+	return abs(value % size_hash_table);
+}
+
+void insert(int value, int key) { 
+	Hash* element, * element_next;
+	element = new Hash(value);
+	element_next = arrkey[key];
+	arrkey[key] = element;
+	element->next = element_next;
+	return;
+}
+
+bool search(int value, int key) {
+	Hash* element = arrkey[key]; 
+	while (element != NULL && element->value != value)
+		element = element->next;
+	if (element != NULL)
+		return true;
+	return false;
+}
+
+void delete_(int value, int key) {
+	Hash* element = arrkey[key], *last_element = 0; 
+	while (element != NULL && element->value != value) {
+		last_element = element;
+		element = element->next;
+	}
+	if (element == NULL) {
+		return;
+	}
+	if (last_element != NULL) {
+		last_element->next = element->next;
+	}
+	else {
+		arrkey[key] = element->next;
+	}
+	delete element;
+}
+
+void delete_HashTable(int size_hash_table) {
+	for (int i = 0; i < size_hash_table; i++) {
+		while (arrkey[i] != NULL) {
+			Hash* element = arrkey[i], * next_element = 0; 
+			while (element != NULL && element->next != NULL) {
+				next_element = element->next;
+				delete element; 
+				element = next_element;
+			}
+			delete element;
+			delete arrkey[i];
+		}
+	}
+	delete[] arrkey;
+}
+
+int main(int argc, char* argv[]){
+  if (argc<3) {
+    return 1;
+  }
+  std::ifstream inFile(argv[1]);
+  if (!inFile){
+    return 2;
+  }
+  std::ofstream outFile(argv[2]);
+  if (!outFile){
+    return 3;
+  }
+  
+  /*
+    Код вашей программы
+  */
+  	int n, value;
+	char operations;
+	inFile >> n;
+	int size_hash_table = n / 8 + 1;
+	arrkey = new Hash * [size_hash_table]; 
+	for (int i = 0; i < size_hash_table; i++) {
+		arrkey[i] = NULL;
+	}
+	for (int i = 0; i < n; i++) {
+		inFile >> operations >> value;
+		int key = Hash_f(value, size_hash_table);
+		if (operations == '+') {
+			insert(value, key);
+		}
+		else if (operations == '-') {
+			delete_(value, key);
+		}
+		else if (operations == '?') {
+			if (search(value, key))
+				outFile << "true";
+			else
+				outFile << "false";
+			if (n!=n-1)
+				outFile << endl;
+		}
+	}
+	delete_HashTable;
+  inFile.close();
+  outFile.close();
+  return 0;
+} 
