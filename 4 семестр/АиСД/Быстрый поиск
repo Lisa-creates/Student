@@ -1,0 +1,101 @@
+#include <fstream> 
+#include <string>
+#include <vector>
+
+using namespace std;
+
+void build(string m, int *p) {
+	p[1] = 0;
+	int i = 1, j = 0;
+	while (i < m.length()) {
+		if (m[i] == m[j]) {
+			p[i + 1] = j + 1;
+			++i;
+			++j;
+		}
+		else
+		{
+			if (j > 0)
+				j = p[j];
+			else
+			{
+				p[i + 1] = 0;
+				++i;
+			}
+		}
+	}
+}
+
+int find(string s, string m, int *p, int tmp) {
+	build(m, p);
+	vector <int> start_substring;
+	int i = tmp, j = 0, start;
+	while (i < s.length() && j < m.length()) {
+		if (s[i] == m[j]) {
+			++i;
+			++j;
+
+		}
+		else
+		{
+			if (j > 0)
+				j = p[j];
+			else
+			{
+				++i;
+			}
+		}
+	}
+	if (j == m.length())
+		return i - m.length() + 1;
+	else
+		return -1;
+}
+
+int main(int argc, char* argv[]){
+  if (argc<3) {
+    return 1;
+  }
+  std::ifstream inFile(argv[1]);
+  if (!inFile){
+    return 2;
+  }
+  std::ofstream outFile(argv[2]);
+  if (!outFile){
+    return 3;
+  }
+  
+  /*
+    Код вашей программы
+  */
+ 	string X, Y;
+	inFile >> X >> Y;
+	int* p = new int[X.length() + 1];
+	int count = 0, tmp = 0;
+	p[0] = 0; 
+	vector <int> start_substring;
+	int i = 0;
+	while (i <= Y.length() - X.length()) {
+		tmp = find(Y, X, p, tmp);
+		if (tmp == -1)
+			break;
+		else
+		{
+			start_substring.push_back(tmp);
+			++count;
+		}
+		++i;
+	}
+	outFile << count << endl;
+	for (int i = 0; i < start_substring.size(); i++)
+	{
+		outFile << start_substring[i];
+		if (i != start_substring.size() - 1)
+			outFile << ' ';
+	}
+	delete [] p;
+  
+  inFile.close();
+  outFile.close();
+  return 0;
+} 
