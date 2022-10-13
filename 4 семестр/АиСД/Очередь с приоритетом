@@ -1,0 +1,111 @@
+#include <fstream>
+#include <vector>
+#include <string>
+
+using namespace std;
+
+void shiftdown(vector <pair<int, int>>& a, int n, int i) {
+	while (true)
+	{
+		if (n >= 3) {
+			int left_branch = 2 * i + 1, right_branch = 2 * i + 2, ind_min = i;
+			if (left_branch < n && a[i].first > a[left_branch].first)
+				ind_min = left_branch;
+			if (right_branch < n && a[ind_min].first > a[right_branch].first)
+				ind_min = right_branch;
+			if (ind_min == i)
+				break;
+			swap(a[i], a[ind_min]);
+			i = ind_min;
+		}
+		else if (n == 2) {
+			if (a[0] > a[1])
+			{
+				swap(a[0], a[1]);
+			}
+			break;
+		}
+		else
+			break;
+	}
+}
+
+void shiftup(vector <pair<int, int>>& a, int n, int i) {
+	while (i > 0) {
+		int parent = (i - 1) / 2;
+		if (a[i].first > a[parent].first)
+			break;
+		swap(a[i], a[parent]);
+		i = parent;
+	}
+}
+
+
+void delete_min(vector <pair<int, int>>& a, int n) {
+	if(n > 1)
+		a[0] = a[n - 1];
+	a.pop_back();
+	if (!a.empty())
+		shiftdown(a, n-1, 0);
+} 
+
+
+
+void replacement(vector <pair<int, int>> &a, int n, int x, int y) {
+	for (int i = 0; i < n; i++) {
+		if (x == a[i].second) {
+			a[i].first = y;
+			shiftup(a, n, i);
+			break;
+		}
+	}
+}
+
+int main(int argc, char* argv[]){
+  if (argc<3) {
+    return 1;
+  }
+  std::ifstream inFile(argv[1]);
+  if (!inFile){
+    return 2;
+  }
+  std::ofstream outFile(argv[2]);
+  if (!outFile){
+    return 3;
+  }
+  /*
+    Код вашей программы
+  */
+	int  x, k = 0, y, oper = 1;
+	vector <pair<int, int>> a;
+	while(!inFile.eof()) {
+		string operations;
+		inFile >> operations;
+		if (operations == "push") {
+			inFile >> x; 
+			a.push_back(make_pair(x, oper));
+			k++;
+			if (k > 1)
+				shiftup(a, k, k - 1);
+		}
+		else if (operations == "extract-min") {
+			if (a.empty())
+				outFile << '*' << endl;
+			else
+			{
+				outFile << a[0].first << endl;
+				delete_min(a, k);
+				k--;
+			}
+		}
+		else if (operations == "decrease-key")
+		{
+			inFile >> x >> y;
+			replacement(a, k, x, y);
+		}
+		oper++;
+	}
+  inFile.close();
+  outFile.close();
+  return 0;
+} 
