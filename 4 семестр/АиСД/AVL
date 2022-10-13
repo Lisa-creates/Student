@@ -1,0 +1,227 @@
+#include <fstream>
+
+using namespace std;
+
+struct Node
+{
+	int key;
+	int height;
+	Node* left;
+	Node* right;
+	Node(int k) { key = k; height = 1; left = nullptr; right = nullptr; }
+};
+
+class Tree {
+public:
+
+	Node* r = nullptr;
+
+	void remove_public(int key) {
+		r = remove(r, key);
+	}
+	bool in_public(int key) {
+		return in(key, r);
+	}
+	void insert_public(int key) {
+		r = insert(r, key);
+	}
+	int balance_public() {
+		return balance_factor(r);
+	}
+
+private:
+
+	int height(Node* r)
+	{
+		if (!r)
+			return 0;
+		int height_right = ReturnHeight(r->right), height_left = ReturnHeight(r->left);
+		if (height_left > height_right)
+			return height_left + 1;
+		else
+			return height_right + 1;
+	}
+
+	int ReturnHeight(Node* r) {
+		if (!r)
+			return 0;
+		else
+			return r->height;
+	}
+
+
+	int balance_factor(Node* r)
+	{
+		if (!r)
+			return 0;
+		return  ReturnHeight(r->right) - ReturnHeight(r->left);
+	}
+
+	bool in(int key, Node* r) {
+		if (!r)
+			return false;
+		if (key == r->key)
+			return true;
+		else if (key < r->key)
+		{
+			if (!r->left)
+				return false;
+			return in(key, r->left);
+		}
+		else
+		{
+			if (!r->right)
+				return false;
+			return in(key, r->right);
+		}
+	}
+
+	Node* rotate_right(Node* r)
+	{
+		Node* m = r->left;
+		r->left = m->right;
+		m->right = r;
+		r->height = height(r);
+		m->height = height(m);
+		return m;
+	}
+
+	Node* rotate_left(Node* r)
+	{
+		Node* l = r->right;
+		r->right = l->left;
+		l->left = r;
+		r->height = height(r);
+		l->height = height(l);
+		return l;
+	}
+
+	Node* balance(Node* r)
+	{
+		if (balance_factor(r) == 2)
+		{
+			if (balance_factor(r->right) < 0)
+				r->right = rotate_right(r->right);
+			return rotate_left(r);
+		}
+		else if (balance_factor(r) == -2)
+		{
+			if (balance_factor(r->left) > 0)
+				r->left = rotate_left(r->left);
+			return rotate_right(r);
+		}
+		return r;
+	}
+
+	Node* insert(Node* r, int key)
+	{
+		if (!r)
+			return new Node(key);
+		if (key <= r->key)
+		{
+			r->left = insert(r->left, key);
+		}
+		else if (key > r->key)
+		{
+			r->right = insert(r->right, key);
+		}
+		r->height = height(r);
+		return balance(r);
+	}
+
+	/*	Node* find_min(Node* (&l))
+		{
+			if (!l->left)
+				return l;
+			return l->left;
+		}
+
+
+		Node* remove_min(Node* (&l))
+		{
+			if (!l->left)
+				return l->right;
+			else if (!l->left && !l->right)
+				return l;
+			l->left = remove_min(l->left);
+			return(balance(l));
+		}
+		*/
+	Node* remove(Node* r, int key) {
+		if (!r)
+			return NULL;
+		if (key < r->key)
+			r->left = remove(r->left, key);
+		else if (key > r->key)
+			r->right = remove(r->right, key);
+		else {
+			Node* rightRoot = r->right;
+			if (!rightRoot) {
+				Node* leftRoot = r->left;
+				delete(r);
+				r = leftRoot;
+			}
+			else if (!r->left) {
+				delete(r);
+				r = rightRoot;
+			}
+			else {
+				while (rightRoot->left)
+					rightRoot = rightRoot->left;
+				r->key = rightRoot->key;
+				r->right = remove(r->right, rightRoot->key);
+			}
+		}
+		if (!r)
+			return r;
+		r->height = height(r);
+		return balance(r);
+	}
+
+};
+
+int main(int argc, char* argv[]){
+  if (argc<3) {
+    return 1;
+  }
+  std::ifstream inFile(argv[1]);
+  if (!inFile){
+    return 2;
+  }
+  std::ofstream outFile(argv[2]);
+  if (!outFile){
+    return 3;
+  }
+  
+  /*
+    Код вашей программы
+  */
+  int n, k;
+	char operations;
+	inFile >> n;
+	Tree tree;
+	Node* root = NULL;
+	for (int i = 0; i < n; i++) {
+		inFile >> operations >> k; 
+		switch (operations){
+		case '+':
+			tree.insert_public(k);
+			outFile << tree.balance_public();
+			break;
+		case '?':
+			if (tree.in_public(k))
+				outFile << "true";
+			else
+				outFile << "false";
+			break;
+		case '-':
+			tree.remove_public(k);
+			outFile << tree.balance_public();
+			break;
+		}
+		outFile << endl;
+	} 
+  inFile.close();
+  outFile.close();
+  return 0;
+}
