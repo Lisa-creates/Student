@@ -1,0 +1,63 @@
+#include <fstream>
+
+using namespace std; 
+
+void Merge(int* A, int f, int middle, int l, long long &k) {
+    int* tmp = new int[l - f + 1];
+    int s1 = f, e1 = middle, s2 = middle + 1, e2 = l, ind = 0; 
+    while (s1 <= e1 && s2 <= e2) {
+        if (A[s1] <= A[s2])
+            tmp[ind++] = A[s1++];
+        else{
+            tmp[ind++] = A[s2++];
+            k += e1 - s1 + 1;
+        }
+    }
+    while (s1 <= e1)
+        tmp[ind++] = A[s1++];
+    while (s2 <= e2){
+        tmp[ind++] = A[s2++];
+    }
+    ind = 0;
+    while (f <= l)
+        A[f++] = tmp[ind++];
+    delete[] tmp;
+}
+
+void Split(int* A, int f, int l, long long &k) {
+    if (f < l) {
+        int middle = f + (l - f) / 2;
+        Split(A, f, middle, k);
+        Split(A, middle + 1, l, k);
+        Merge(A, f, middle, l, k);
+    }
+}
+
+int main(int argc, char* argv[]){
+  if (argc<3) {
+    return 1;
+  }
+  std::ifstream inFile(argv[1]);
+  if (!inFile){
+    return 2;
+  }
+  std::ofstream outFile(argv[2]);
+  if (!outFile){
+    return 3;
+  }
+  
+  int N;
+  inFile >> N;
+  int* a = new int[N];
+  long long m, k = 0;
+  for (int i = 0; i < N; i++) {
+       inFile >> m;
+       a[i] = m;
+  }
+  Split(a, 0, N-1, k);
+  outFile << k;
+  inFile.close();
+  outFile.close();
+  delete[] a;
+  return 0;
+}
